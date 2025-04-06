@@ -9,7 +9,7 @@ OBJS = $(CEB_OBJ)
 
 WITH_DUMP= -DCEB_ENABLE_DUMP
 
-TEST_BIN += $(addprefix $(CEB_DIR)/,stress-32 stress-u32 stress-64 stress-u64 stress-l stress-ul stress-mb stress-umb)
+TEST_BIN += $(addprefix $(CEB_DIR)/,stress-32 stress-u32 stress-64 stress-u64 stress-l stress-ul stress-mb stress-umb stress-st stress-ust)
 
 all: test
 
@@ -44,6 +44,12 @@ ceb/stress-umb: src/stress.c $(CEB_LIB)
 
 ceb/stress-mb: src/stress.c $(CEB_LIB)
 	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -pthread -DINCLUDE_FILE='"cebb_tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ceb_node' -DROOT_TYPE='struct ceb_root' -D'NODE_INS(r,k)=cebb_insert(r,k,sizeof(long long))' -D'NODE_DEL(r,k)=cebb_delete(r,k,sizeof(long long))' -DNODE_INTREE='ceb_intree'
+
+ceb/stress-ust: src/stress.c libcebtree.a
+	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L. -lcebtree -pthread -DINCLUDE_FILE='"cebus_tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ceb_node' -DROOT_TYPE='struct ceb_root' -DNODE_INS='cebus_insert' -DNODE_DEL='cebus_delete' -DNODE_INTREE='ceb_intree' -DSTORAGE_STRING=21
+
+ceb/stress-st: src/stress.c libcebtree.a
+	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L. -lcebtree -pthread -DINCLUDE_FILE='"cebs_tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ceb_node' -DROOT_TYPE='struct ceb_root' -DNODE_INS='cebs_insert' -DNODE_DEL='cebs_delete' -DNODE_INTREE='ceb_intree' -DSTORAGE_STRING=21
 
 clean:
 	-rm -fv $(CEB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
