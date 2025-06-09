@@ -10,6 +10,7 @@ OBJS = $(CEB_OBJ)
 WITH_DUMP= -DCEB_ENABLE_DUMP
 
 TEST_BIN += $(addprefix $(CEB_DIR)/,stress-32 stress-u32 stress-64 stress-u64 stress-l stress-ul stress-mb stress-umb stress-st stress-ust)
+TEST_BIN += $(addprefix $(CEB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
 
 all: test
 
@@ -50,6 +51,15 @@ ceb/stress-ust: src/stress.c $(CEB_LIB)
 
 ceb/stress-st: src/stress.c $(CEB_LIB)
 	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -pthread -DINCLUDE_FILE='"cebs_tree.h"' -DDATA_TYPE='unsigned long long' -DNODE_TYPE='struct ceb_node' -DROOT_TYPE='struct ceb_root*' -DNODE_INS='cebs_insert' -DNODE_DEL='cebs_delete' -DNODE_FND='cebs_lookup' -DNODE_INTREE='ceb_intree' -DSTORAGE_STRING=21
+
+ceb/opstime-u32: src/opstime.c $(CEB_LIB)
+	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -D'INCLUDE_FILE="cebu32_tree.h"' -D'DATA_TYPE=unsigned int' -D'NODE_TYPE=struct ceb_node' -D'ROOT_TYPE=struct ceb_root*' -D'NODE_INS=cebu32_insert' -D'NODE_DEL=cebu32_delete' -D'NODE_FND=cebu32_lookup' -D'KEY_IS_INT' -D'ROOT_INIT(x)=do{}while(0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
+
+ceb/opstime-u64: src/opstime.c $(CEB_LIB)
+	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -D'INCLUDE_FILE="cebu64_tree.h"' -D'DATA_TYPE=unsigned long long' -D'NODE_TYPE=struct ceb_node' -D'ROOT_TYPE=struct ceb_root*' -D'NODE_INS=cebu64_insert' -D'NODE_DEL=cebu64_delete' -D'NODE_FND=cebu64_lookup' -D'KEY_IS_INT' -D'ROOT_INIT(x)=do{}while(0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
+
+ceb/opstime-ust: src/opstime.c $(CEB_LIB)
+	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -D'INCLUDE_FILE="cebus_tree.h"' -D'NODE_TYPE=struct ceb_node' -D'ROOT_TYPE=struct ceb_root*' -D'NODE_INS=cebus_insert' -D'NODE_DEL=cebus_delete' -D'NODE_FND=cebus_lookup' -D'KEY_IS_STR' -D'ROOT_INIT(x)=do{}while(0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
 
 clean:
 	-rm -fv $(CEB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}

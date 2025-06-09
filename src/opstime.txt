@@ -1,0 +1,74 @@
+2025-06-09 - opstime design
+
+
+Principle
+---------
+
+Measure the time per operation at various tree sizes. The operations are:
+  - insert()  (will be averaged over the whole set)
+  - lookup()  (will be done over the whole set)
+  - delete()  (will be averaged over the whole set)
+
+The tests must implement support for hashing the head from the beginning, with
+a configurable number of buckets.
+
+The tree operations and the hash function must be easy to configure via macros.
+
+
+Design
+------
+
+In order to avoid pre-heating tree nodes by side effect of looking up the keys,
+we'll store a copy of the keys to be looked up separately from the nodes
+themselves, as it would happen in real life. For this, we'll create a table of
+all keys, like this:
+
+   struct entry {
+      void *key;     // strdup(), calloc(), etc.
+      size_t len;    // key length or size, used for hash calc
+      size_t bucket; // hash bucket number
+      void *node;    // pointer to the node (for deletion)
+   };
+
+The array will be pre-allocated of a given size at boot. Either random keys
+will be generated, or they will be read from stdin. Supported formats should
+include:
+  - strings
+  - integers
+  - hex blocks (e.g. sha256)
+  - IPv4/v6 addresses (or may be externally converted to hex blocks)
+
+Integers could probably be stored directly in the key.
+
+For each operation, a first run will be done through the keys without the tree
+operation and a second one with the tree operation. The goal is to permit to
+deduce the time it takes to scan the array. It might result in wrong values due
+to caching though.
+
+When trying the multi-head approach, an option should permit to recalculate the
+hash from the key along with the operation instead of using the bucket value, in
+order to compare the total cost of the operation.
+
+
+Proposal
+--------
+
+./opstime<type> [options*]
+   -H buckets : create that many hash buckets. Defaults: 1.
+   -l length  : length of the key for binary blocks.
+   -n entries : max number of entries
+   -g mode    : generate keys following various randomization modes instead of stdin
+   -m measure : time measurement includes hash or not (and possibly diff with scan)
+   -r runs    : how many times to re-run the whole test
+
+
+Extra
+-----
+
+It could be nice to have also a reposition() operation made of insert(delete())
+even though it's not easy to change the key. However we could insert into
+another head but that would break the hash-based lookup. And reinserting at the
+same place benefits from cache, and will not cause rebalancing to happen with
+algos that involve it. It could be envisionned to change the key, though. E.g.
+simply increment the first byte for blocks/strings, and increment the topmost
+byte for integers.
