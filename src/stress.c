@@ -301,6 +301,7 @@ void run(void *arg)
 			 */
 			BUG_ON(NODE_INTREE(&itm->node));
 			switch (arg_series) {
+			case 3:  v = ctx->ctr; ctx->ctr += rnd32() & 255; break;
 			case 2:  v = ctx->ctr++; break;
 			case 1:  v = rnd64(); v  = (int64_t)v >> (v & 63); break;
 			default: v = rnd64(); break;
