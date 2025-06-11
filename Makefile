@@ -1,4 +1,4 @@
-CFLAGS = -O3 -W -Wall -Wdeclaration-after-statement -Wno-unused-parameter -ggdb3
+CFLAGS = -O3 -W -Wall -Wno-unused-parameter -ggdb3 -std=c99
 
 CEB_DIR = ceb
 CEB_SRC = $(wildcard $(CEB_DIR)/ceb*.c)
@@ -10,7 +10,12 @@ EB_SRC = $(wildcard $(EB_DIR)/eb*.c)
 EB_OBJ = $(EB_SRC:%.c=%.o)
 EB_LIB = $(EB_DIR)/libebtree.a
 
-OBJS = $(CEB_OBJ) $(EB_OBJ)
+RB_DIR = rb
+RB_SRC = $(wildcard $(RB_DIR)/rb*.c)
+RB_OBJ = $(RB_SRC:%.c=%.o)
+RB_LIB = $(RB_DIR)/librbtree.a
+
+OBJS = $(CEB_OBJ) $(EB_OBJ) $(RB_OBJ)
 
 WITH_DUMP= -DCEB_ENABLE_DUMP
 
@@ -28,11 +33,17 @@ $(CEB_LIB): $(CEB_OBJ)
 $(EB_LIB): $(EB_OBJ)
 	$(AR) rv $@ $^
 
+$(RB_LIB): $(RB_OBJ)
+	$(AR) rv $@ $^
+
 ceb/%.o: ceb/%.c ceb/cebtree-prv.h ceb/_ceb_int.c ceb/_ceb_blk.c ceb/_ceb_str.c ceb/_ceb_addr.c
 	$(CC) $(CFLAGS) $(WITH_DUMP) -o $@ -c $<
 
 eb/%.o: eb/%.c eb/%.h eb/ebtree.h
 	$(CC) $(CFLAGS) -o $@ -c $<
+
+rb/%.o: rb/%.c rb/%.h
+	$(CC) $(CFLAGS) -o $@ -I$(RB_DIR) -c $<
 
 test: $(TEST_BIN)
 
@@ -144,8 +155,8 @@ eb/opstime-ust: src/opstime.c $(EB_LIB)
 	$(CC) $(CFLAGS) -I$(EB_DIR) -o $@ $< -L$(EB_DIR) -lebtree -D'INCLUDE_FILE="ebsttree.h"' -D'NODE_TYPE=struct ebmb_node' -D'ROOT_TYPE=struct eb_root' -D'NODE_INS(r,n)=ebst_insert(r,n)' -D'NODE_DEL(r,n)=ebmb_delete(n)' -D'NODE_FND(r,k)=ebst_lookup(r,k)' -D'KEY_IS_STR' -D'ROOT_INIT(r)=((r)->b[1]=(void*)1)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
 
 clean:
-	-rm -fv $(CEB_LIB) $(EB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
-	-rm -fv $(addprefix $(CEB_DIR)/,*~ *.rej core) $(addprefix $(EB_DIR)/,*~ *.rej core)
+	-rm -fv $(CEB_LIB) $(EB_LIB) $(RB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
+	-rm -fv $(addprefix $(CEB_DIR)/,*~ *.rej core) $(addprefix $(EB_DIR)/,*~ *.rej core) $(addprefix $(RB_DIR)/,*~ *.rej core)
 
 ifeq ($(wildcard .git),.git)
 VERSION := $(shell [ -d .git/. ] && (git describe --tags --match 'v*' --abbrev=0 | cut -c 2-) 2>/dev/null)
