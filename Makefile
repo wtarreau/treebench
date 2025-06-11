@@ -18,6 +18,7 @@ TEST_BIN += $(addprefix $(CEB_DIR)/,stress-32 stress-u32 stress-64 stress-u64 st
 TEST_BIN += $(addprefix $(EB_DIR)/,stress-32 stress-32i stress-32ge stress-32le stress-64 stress-64i stress-64ge stress-64le stress-mb stress-st)
 TEST_BIN += $(addprefix $(EB_DIR)/,stress-u32 stress-u32i stress-u32ge stress-u32le stress-u64 stress-u64i stress-u64ge stress-u64le stress-umb stress-ust)
 TEST_BIN += $(addprefix $(CEB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
+TEST_BIN += $(addprefix $(EB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
 
 all: test
 
@@ -132,6 +133,15 @@ ceb/opstime-u64: src/opstime.c $(CEB_LIB)
 
 ceb/opstime-ust: src/opstime.c $(CEB_LIB)
 	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -D'INCLUDE_FILE="cebus_tree.h"' -D'NODE_TYPE=struct ceb_node' -D'ROOT_TYPE=struct ceb_root*' -D'NODE_INS=cebus_insert' -D'NODE_DEL=cebus_delete' -D'NODE_FND=cebus_lookup' -D'KEY_IS_STR' -D'ROOT_INIT(x)=do{}while(0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
+
+eb/opstime-u32: src/opstime.c $(EB_LIB)
+	$(CC) $(CFLAGS) -I$(EB_DIR) -o $@ $< -L$(EB_DIR) -lebtree -D'INCLUDE_FILE="eb32tree.h"' -D'DATA_TYPE=unsigned int' -D'NODE_TYPE=struct eb32_node' -D'ROOT_TYPE=struct eb_root' -D'NODE_INS(r,n)=eb32_insert(r,n)' -D'NODE_DEL(r,n)=eb32_delete(n)' -D'NODE_FND(r,k)=eb32_lookup(r,k)' -D'KEY_IS_INT' -D'ROOT_INIT(r)=((r)->b[1]=(void*)1)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=(n)->key=k'
+
+eb/opstime-u64: src/opstime.c $(EB_LIB)
+	$(CC) $(CFLAGS) -I$(EB_DIR) -o $@ $< -L$(EB_DIR) -lebtree -D'INCLUDE_FILE="eb64tree.h"' -D'DATA_TYPE=unsigned long long' -D'NODE_TYPE=struct eb64_node' -D'ROOT_TYPE=struct eb_root' -D'NODE_INS(r,n)=eb64_insert(r,n)' -D'NODE_DEL(r,n)=eb64_delete(n)' -D'NODE_FND(r,k)=eb64_lookup(r,k)' -D'KEY_IS_INT' -D'ROOT_INIT(r)=((r)->b[1]=(void*)1)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=(n)->key=k'
+
+eb/opstime-ust: src/opstime.c $(EB_LIB)
+	$(CC) $(CFLAGS) -I$(EB_DIR) -o $@ $< -L$(EB_DIR) -lebtree -D'INCLUDE_FILE="ebsttree.h"' -D'NODE_TYPE=struct ebmb_node' -D'ROOT_TYPE=struct eb_root' -D'NODE_INS(r,n)=ebst_insert(r,n)' -D'NODE_DEL(r,n)=ebmb_delete(n)' -D'NODE_FND(r,k)=ebst_lookup(r,k)' -D'KEY_IS_STR' -D'ROOT_INIT(r)=((r)->b[1]=(void*)1)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
 
 clean:
 	-rm -fv $(CEB_LIB) $(EB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
