@@ -5,7 +5,12 @@ CEB_SRC = $(wildcard $(CEB_DIR)/ceb*.c)
 CEB_OBJ = $(CEB_SRC:%.c=%.o)
 CEB_LIB = $(CEB_DIR)/libcebtree.a
 
-OBJS = $(CEB_OBJ)
+EB_DIR = eb
+EB_SRC = $(wildcard $(EB_DIR)/eb*.c)
+EB_OBJ = $(EB_SRC:%.c=%.o)
+EB_LIB = $(EB_DIR)/libebtree.a
+
+OBJS = $(CEB_OBJ) $(EB_OBJ)
 
 WITH_DUMP= -DCEB_ENABLE_DUMP
 
@@ -17,8 +22,14 @@ all: test
 $(CEB_LIB): $(CEB_OBJ)
 	$(AR) rv $@ $^
 
+$(EB_LIB): $(EB_OBJ)
+	$(AR) rv $@ $^
+
 ceb/%.o: ceb/%.c ceb/cebtree-prv.h ceb/_ceb_int.c ceb/_ceb_blk.c ceb/_ceb_str.c ceb/_ceb_addr.c
 	$(CC) $(CFLAGS) $(WITH_DUMP) -o $@ -c $<
+
+eb/%.o: eb/%.c eb/%.h eb/ebtree.h
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 test: $(TEST_BIN)
 
@@ -62,8 +73,8 @@ ceb/opstime-ust: src/opstime.c $(CEB_LIB)
 	$(CC) $(CFLAGS) -I$(CEB_DIR) -o $@ $< -L$(CEB_DIR) -lcebtree -D'INCLUDE_FILE="cebus_tree.h"' -D'NODE_TYPE=struct ceb_node' -D'ROOT_TYPE=struct ceb_root*' -D'NODE_INS=cebus_insert' -D'NODE_DEL=cebus_delete' -D'NODE_FND=cebus_lookup' -D'KEY_IS_STR' -D'ROOT_INIT(x)=do{}while(0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
 
 clean:
-	-rm -fv $(CEB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
-	-rm -fv $(addprefix $(CEB_DIR)/,*~ *.rej core)
+	-rm -fv $(CEB_LIB) $(EB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
+	-rm -fv $(addprefix $(CEB_DIR)/,*~ *.rej core) $(addprefix $(EB_DIR)/,*~ *.rej core)
 
 ifeq ($(wildcard .git),.git)
 VERSION := $(shell [ -d .git/. ] && (git describe --tags --match 'v*' --abbrev=0 | cut -c 2-) 2>/dev/null)
