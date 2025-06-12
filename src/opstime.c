@@ -58,6 +58,10 @@
 
 #include INCLUDE_FILE
 
+#define XXH_NO_STREAM
+#define XXH_INLINE_ALL // for XXH3
+#include "../xxhash/xxhash.h"
+
 /* Some utility functions */
 #if defined(__TINYC__)
 #include <stdatomic.h>
@@ -237,7 +241,7 @@ unsigned int buckets = 1;
 unsigned int arg_runs = 1;
 unsigned int arg_gmode = 0;  // 0: stdin; 1: random; 2: worst case; 3: ctr (e.g. timers);
 unsigned int blksize = 0;
-unsigned int measure = 0;
+unsigned int hmethod = 0;
 unsigned int arg_avg = 0;
 
 /* returns -1/0/1 for a<b, a==b, a>b */
@@ -257,16 +261,16 @@ static int ullongcmp(const void *_a, const void *_b)
 void usage(const char *name, int ret)
 {
 	die(ret,
-	    "usage: %s [-h] [-d*] [-H buckets] [-n keys] [-l blksize] [-g mode] [-m measure] [-r runs] (-a avg] [-s seed]\n"
+	    "usage: %s [-h] [-d*] [-H buckets] [-n keys] [-l blksize] [-g mode] [-m hmethod] [-r runs] (-a avg] [-s seed]\n"
 	    "Generation modes for -g:\n"
 	    "  0: read keys from stdin (one per line, default)\n"
 	    "  1: pure 64-bit random (default)\n"
 	    "  2: worst case 64-bit randoms (e.g. cache DoS)\n"
 	    "  3: grouped data (counter, to mimmick timers)\n"
 	    "  4: positive random increments (to mimmick sparse timers)\n"
-	    "Measurement mode for -m:\n"
-	    "  0: just the tree op itself\n"
-	    "  1: tree op + hashing if buckets > 1\n"
+	    "Hashing method for -m (using -H buckets):\n"
+	    "  0: zero-cost ideal distribution over buckets (counter)\n"
+	    "  1: hash keys using XXH3()\n"
 	    "Average method for -a:\n"
 	    "  0: take the mean value (default)\n"
 	    "  1: eliminate the quater min and max and avg over the rest\n"
@@ -315,7 +319,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(*argv, "-m")) {
 			if (--argc < 0)
 				usage(argv0, 1);
-			measure = atol(*++argv);
+			hmethod = atol(*++argv);
 		}
 		else if (!strcmp(*argv, "-r")) {
 			if (--argc < 0)
@@ -408,6 +412,8 @@ int main(int argc, char **argv)
 
 		if (idx < nbentries) {
 			ctx.table[idx].bucket = idx % buckets;
+			if (hmethod == 1)
+				ctx.table[idx].bucket = XXH3_64bits(&v, sizeof(v)) % buckets;
 			ctx.table[idx].key.i = v;
 
 			ctx.table[idx].item = calloc(1, sizeof(*ctx.table[idx].item));
@@ -455,8 +461,10 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (idx < nbentries) {
-			ctx.table[idx].bucket = idx % buckets;
 			ctx.table[idx].len = strlen(line);
+			ctx.table[idx].bucket = idx % buckets;
+			if (hmethod == 1)
+				ctx.table[idx].bucket = XXH3_64bits(line, ctx.table[idx].len) % buckets;
 			ctx.table[idx].key.p = strdup(line);
 			if (!ctx.table[idx].key.p)
 				die(1, "not enough memory for strdup()\n");
@@ -486,12 +494,36 @@ int main(int argc, char **argv)
 		 * the tree is already in use.
 		 */
 		idx = 0;
-		for (; idx < nbentries / 2; idx++)
-			NODE_INS(&ctx.root[ctx.table[idx].bucket], &ctx.table[idx].item->node);
+		for (; idx < nbentries / 2; idx++) {
+			unsigned int bucket = ctx.table[idx].bucket;
+
+			if (hmethod == 1) {
+#if defined(KEY_IS_INT)
+				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+#elif defined(KEY_IS_STR)
+				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+#else
+#error "type not implemented yet"
+#endif
+			}
+			NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node);
+		}
 
 		tv_now(&beg);
-		for (; idx < nbentries; idx++)
-			NODE_INS(&ctx.root[ctx.table[idx].bucket], &ctx.table[idx].item->node);
+		for (; idx < nbentries; idx++) {
+			unsigned int bucket = ctx.table[idx].bucket;
+
+			if (hmethod == 1) {
+#if defined(KEY_IS_INT)
+				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+#elif defined(KEY_IS_STR)
+				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+#else
+#error "type not implemented yet"
+#endif
+			}
+			NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node);
+		}
 		tv_now(&end);
 		ctx.ins_times[run] = tv_us_elapsed(&beg, &end);
 		ctx.ins += ctx.ins_times[run];
@@ -502,10 +534,16 @@ int main(int argc, char **argv)
 
 		tv_now(&beg);
 		for (idx = 0; idx < nbentries; idx++) {
+			unsigned int bucket = ctx.table[idx].bucket;
+
 #if defined(KEY_IS_INT)
-			if (!NODE_FND(&ctx.root[ctx.table[idx].bucket], ctx.table[idx].key.i))
+			if (hmethod == 1)
+				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.i))
 #elif defined(KEY_IS_STR)
-			if (!NODE_FND(&ctx.root[ctx.table[idx].bucket], ctx.table[idx].key.p))
+			if (hmethod == 1)
+				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.p))
 #else
 #error "type not implemented yet"
 #endif
