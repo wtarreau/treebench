@@ -62,6 +62,8 @@
 #define XXH_INLINE_ALL // for XXH3
 #include "../xxhash/xxhash.h"
 
+#include "../rapidhash/rapidhash.h"
+
 /* Some utility functions */
 #if defined(__TINYC__)
 #include <stdatomic.h>
@@ -271,6 +273,7 @@ void usage(const char *name, int ret)
 	    "Hashing method for -m (using -H buckets):\n"
 	    "  0: zero-cost ideal distribution over buckets (counter)\n"
 	    "  1: hash keys using XXH3()\n"
+	    "  2: hash keys using rapidhashNano()\n"
 	    "Average method for -a:\n"
 	    "  0: take the mean value (default)\n"
 	    "  1: eliminate the quater min and max and avg over the rest\n"
@@ -414,6 +417,8 @@ int main(int argc, char **argv)
 			ctx.table[idx].bucket = idx % buckets;
 			if (hmethod == 1)
 				ctx.table[idx].bucket = XXH3_64bits(&v, sizeof(v)) % buckets;
+			else if (hmethod == 2)
+				ctx.table[idx].bucket = rapidhashNano(&v, sizeof(v)) % buckets;
 			ctx.table[idx].key.i = v;
 
 			ctx.table[idx].item = calloc(1, sizeof(*ctx.table[idx].item));
@@ -465,6 +470,8 @@ int main(int argc, char **argv)
 			ctx.table[idx].bucket = idx % buckets;
 			if (hmethod == 1)
 				ctx.table[idx].bucket = XXH3_64bits(line, ctx.table[idx].len) % buckets;
+			else if (hmethod == 2)
+				ctx.table[idx].bucket = rapidhashNano(line, ctx.table[idx].len) % buckets;
 			ctx.table[idx].key.p = strdup(line);
 			if (!ctx.table[idx].key.p)
 				die(1, "not enough memory for strdup()\n");
@@ -506,6 +513,16 @@ int main(int argc, char **argv)
 #error "type not implemented yet"
 #endif
 			}
+			else if (hmethod == 2) {
+#if defined(KEY_IS_INT)
+				bucket = rapidhashNano(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+#elif defined(KEY_IS_STR)
+				bucket = rapidhashNano(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+#else
+#error "type not implemented yet"
+#endif
+			}
+
 			NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node);
 		}
 
@@ -518,6 +535,15 @@ int main(int argc, char **argv)
 				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
 #elif defined(KEY_IS_STR)
 				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+#else
+#error "type not implemented yet"
+#endif
+			}
+			else if (hmethod == 2) {
+#if defined(KEY_IS_INT)
+				bucket = rapidhashNano(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+#elif defined(KEY_IS_STR)
+				bucket = rapidhashNano(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
 #else
 #error "type not implemented yet"
 #endif
@@ -539,10 +565,14 @@ int main(int argc, char **argv)
 #if defined(KEY_IS_INT)
 			if (hmethod == 1)
 				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
+			else if (hmethod == 2)
+				bucket = rapidhashNano(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
 			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.i))
 #elif defined(KEY_IS_STR)
 			if (hmethod == 1)
 				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
+			else if (hmethod == 2)
+				bucket = rapidhashNano(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
 			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.p))
 #else
 #error "type not implemented yet"
