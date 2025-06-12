@@ -25,6 +25,7 @@ TEST_BIN += $(addprefix $(EB_DIR)/,stress-u32 stress-u32i stress-u32ge stress-u3
 TEST_BIN += $(addprefix $(RB_DIR)/,stress-u64 stress-ust stress-umb)
 TEST_BIN += $(addprefix $(CEB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
 TEST_BIN += $(addprefix $(EB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
+TEST_BIN += $(addprefix $(RB_DIR)/,opstime-u32 opstime-u64 opstime-ust)
 
 all: test
 
@@ -164,6 +165,15 @@ eb/opstime-u64: src/opstime.c $(EB_LIB)
 
 eb/opstime-ust: src/opstime.c $(EB_LIB)
 	$(CC) $(CFLAGS) -I$(EB_DIR) -o $@ $< -L$(EB_DIR) -lebtree -D'INCLUDE_FILE="ebsttree.h"' -D'NODE_TYPE=struct ebmb_node' -D'ROOT_TYPE=struct eb_root' -D'NODE_INS(r,n)=ebst_insert(r,n)' -D'NODE_DEL(r,n)=ebmb_delete(n)' -D'NODE_FND(r,k)=ebst_lookup(r,k)' -D'KEY_IS_STR' -D'ROOT_INIT(r)=((r)->b[1]=(void*)1)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=do{}while(0)'
+
+rb/opstime-u32: src/opstime.c $(RB_LIB)
+	$(CC) $(CFLAGS) -I$(RB_DIR) -o $@ $< -L$(RB_DIR) -lrbtree -DNODEBUG -D'INCLUDE_FILE="rbtree.h"' -D'DATA_TYPE=unsigned int' -D'NODE_TYPE=struct rb_tree_node' -D'ROOT_TYPE=struct rb_tree' -D'NODE_INS(r,n)=({ struct rb_tree_node *_n; rb_tree_find_or_insert(r,(void*)(n)->key,(n),&_n); _n; })' -D'NODE_DEL(r,n)=({ rb_tree_remove(r,(n)); (n); })' -D'NODE_FND(r,k)=({ struct rb_tree_node *_n; (rb_tree_find(r,(void*)k,&_n) == RB_OK) ? _n : NULL; })' -D'KEY_IS_INT' -D'ROOT_INIT(r)=do { int uintcmp(const void *a, const void *b) { return ((unsigned int)(unsigned long)a < (unsigned int)(unsigned long)b) ? -1 : ((unsigned int)(unsigned long)a > (unsigned int)(unsigned long)b) ? 1 : 0; } rb_tree_new(r,uintcmp); } while (0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=(n)->key=(void*)k'
+
+rb/opstime-u64: src/opstime.c $(RB_LIB)
+	$(CC) $(CFLAGS) -I$(RB_DIR) -o $@ $< -L$(RB_DIR) -lrbtree -DNODEBUG -D'INCLUDE_FILE="rbtree.h"' -D'DATA_TYPE=unsigned long long' -D'NODE_TYPE=struct rb_tree_node' -D'ROOT_TYPE=struct rb_tree' -D'NODE_INS(r,n)=({ struct rb_tree_node *_n; rb_tree_find_or_insert(r,(void*)(n)->key,(n),&_n); _n; })' -D'NODE_DEL(r,n)=({ rb_tree_remove(r,(n)); (n); })' -D'NODE_FND(r,k)=({ struct rb_tree_node *_n; (rb_tree_find(r,(void*)k,&_n) == RB_OK) ? _n : NULL; })' -D'KEY_IS_INT' -D'ROOT_INIT(r)=do { int longcmp(const void *a, const void *b) { return ((unsigned long long)a < (unsigned long long)b) ? -1 : ((unsigned long long)a > (unsigned long long)b) ? 1 : 0; } rb_tree_new(r,longcmp); } while (0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=(n)->key=(void*)k'
+
+rb/opstime-ust: src/opstime.c $(RB_LIB)
+	$(CC) $(CFLAGS) -I$(RB_DIR) -o $@ $< -L$(RB_DIR) -lrbtree -DNODEBUG -D'INCLUDE_FILE="rbtree.h"' -D'NODE_TYPE=struct rb_tree_node' -D'ROOT_TYPE=struct rb_tree' -D'NODE_INS(r,n)=({ struct rb_tree_node *_n; rb_tree_find_or_insert(r,(void*)(n)->key,(n),&_n); _n; })' -D'NODE_DEL(r,n)=({ rb_tree_remove(r,(n)); (n); })' -D'NODE_FND(r,k)=({ struct rb_tree_node *_n; (rb_tree_find(r,(void*)k,&_n) == RB_OK) ? _n : NULL; })' -D'KEY_IS_STR' -D'ROOT_INIT(r)=do { int scmp(const void *a, const void *b) { return strcmp(a, b); } rb_tree_new(r,scmp); } while (0)' -D'NODE_INIT(x)=do{}while(0)' -D'SET_KEY(n,k)=(n)->key=(void*)k'
 
 clean:
 	-rm -fv $(CEB_LIB) $(EB_LIB) $(RB_LIB) $(OBJS) *~ *.rej core $(TEST_BIN) ${EXAMPLES}
