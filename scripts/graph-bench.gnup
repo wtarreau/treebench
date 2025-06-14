@@ -1,0 +1,164 @@
+
+# for test in tmr u64 ust ipv4 ua; do INPUT_FILE=run-20250613-01.txt TEST=$test gnuplot graph-bench.gnup;done
+
+# Input format: <test type> [ <op> <meas> <tot> <per_op> ]*:
+# tmr/1:rb 9 ins 256 18.317 35.2    fnd 512 26.992 25.4    del 256 3.336 7.8
+# tmr/1:rb 10 ins 512 19.346 37.1    fnd 1024 34.202 32.2    del 512 3.372 5.9
+# tmr/1:rb 11 ins 1024 21.296 39.1    fnd 2048 38.072 35.6    del 1024 3.326 5.9
+
+# a few functions and settings
+max(x,y)=(x>y)?x:y
+
+# the file and the test should be passed as environment variables
+filename="`echo $INPUT_FILE`"
+test="`echo $TEST`"
+
+if (filename eq "") { print("ERROR! must make INPUT_FILE point to the data file");quit }
+if (test eq "") { print("ERROR! must set the test type in TEST (tmr,u64,ust,ipv4,ua etc");quit }
+
+#set terminal pngcairo enhanced size 1200,800
+set terminal pngcairo enhanced size 1024,400
+
+# Title and labels
+#set title "SSL library performance comparison on r8g-8xlarge (Graviton 4 - 64 CPU) -- HAProxy rwlocks
+
+# for an unknown reason, starting at 512 makes all values slightly off
+set xlabel "Number of entries"
+set xrange [513:]
+set xtics 2
+set format x "%.f"
+
+set ylabel "Operation cost in nanoseconds (lower is better)"
+set yrange [0:]
+set ytics 10
+
+# Grid and style
+set grid
+set style data linespoints
+
+#set key outside bottom center maxrows 3
+set key top left Left reverse maxrows 3 samplen 6
+
+set logscale x
+
+# Line styles
+set style line 1 lc rgb '#8b1a0e' lt 1 lw 2 pt 7 ps 1.0 dt 1  # solid Dark red
+set style line 2 lc rgb '#1f78b4' lt 1 lw 2 pt 7 ps 1.0 dt 1  # solid Light Blue
+set style line 3 lc rgb '#5e9c36' lt 1 lw 2 pt 7 ps 1.0 dt 1  # solid Green
+set style line 4 lc rgb '#8b1a0e' lt 1 lw 2 pt 7 ps 1.0 dt 2  # dashed Dark red
+set style line 5 lc rgb '#1f78b4' lt 1 lw 2 pt 7 ps 1.0 dt 2  # dashed Light Blue
+set style line 6 lc rgb '#5e9c36' lt 1 lw 2 pt 7 ps 1.0 dt 2  # dashed Green
+set style line 7 lc rgb '#8b1a0e' lt 1 lw 2 pt 7 ps 1.0 dt 3  # dotted Dark red
+set style line 8 lc rgb '#1f78b4' lt 1 lw 2 pt 7 ps 1.0 dt 3  # dotted Light Blue
+set style line 9 lc rgb '#5e9c36' lt 1 lw 2 pt 7 ps 1.0 dt 3  # dotted Green
+
+#set style line 1 lc rgb '#8b1a0e' lt 1 lw 3 pt 7 ps 1.0 dt 1  # solid Dark red
+#set style line 2 lc rgb '#1f78b4' lt 1 lw 3 pt 9 ps 1.5 dt 1  # solid Light Blue
+#set style line 3 lc rgb '#5e9c36' lt 1 lw 3 pt 5 ps 1.0 dt 1  # solid Green
+#set style line 4 lc rgb '#88419d' lt 1 lw 3 pt 19 ps 1.0   # Purple
+#set style line 5 lc rgb '#faa31a' lt 1 lw 3 pt 13 ps 1.0  # Orange
+#set style line 6 lc rgb '#e31a1c' lt 1 lw 3 pt 15 ps 1.0  # Red
+#set style line 7 lc rgb '#33a02c' lt 1 lw 3 pt 17 ps 1.0  # Dark Green
+#set style line 8 lc rgb '#225ea8' lt 1 lw 3 pt 11 ps 1.0  # Blue
+#set style line 9 lc rgb '#ff7f00' lt 1 lw 3 pt 21 ps 1.0  # Dark Orange
+
+
+#plot "<(grep ^tmr/1:rb run-20250613-01.txt)" using 8:10 with lines title "lookup - rb",
+#
+#
+#plot "<(grep ^tmr/1:rb run-20250613-01.txt)" using 8:10 title "lookup - rb" ls 1, "<(grep ^tmr/1:eb run-20250613-01.txt)" using 8:10 title "lookup - eb" ls 2, "<(grep ^tmr/1:ceb run-20250613-01.txt)" using 8:10 title "lookup - ceb" ls 3
+#
+#
+#######################
+#
+## get the max
+#stats "<(grep ^u64/ run-20250613-01.txt)" using ($10) name "lookup" nooutput
+#set ytics ceil(lookup_max/100)*5  
+#
+#plot "<(grep ^u64/1:rb run-20250613-01.txt)" using 8:10 title "lookup - H(1) - rb" ls 1, "<(grep ^u64/1:eb run-20250613-01.txt)" using 8:10 title "lookup - H(1) - eb" ls 2, "<(grep ^u64/1:ceb run-20250613-01.txt)" using 8:10 title "lookup H(1) - ceb" ls 3, "<(grep ^u64/256:rb run-20250613-01.txt)" using 8:10 title "lookup - H(256) - rb" ls 4, "<(grep ^u64/256:eb run-20250613-01.txt)" using 8:10 title "lookup - H(256) - eb" ls 5, "<(grep ^u64/256:ceb run-20250613-01.txt)" using 8:10 title "lookup - H(256) - ceb" ls 6, "<(grep ^u64/65536:rb run-20250613-01.txt)" using 8:10 title "lookup - H(64k) - rb" ls 7, "<(grep ^u64/65536:eb run-20250613-01.txt)" using 8:10 title "lookup - H(64k) - eb" ls 8, "<(grep ^u64/65536:ceb run-20250613-01.txt)" using 8:10 title "lookup - H(64k) - ceb" ls 9
+#
+#
+## get the max
+#stats "<(grep ^u64/ run-20250613-01.txt)" using ($6) name "insert" nooutput
+#set ytics ceil(insert_max/100)*5  
+#
+#plot "<(grep ^u64/1:rb run-20250613-01.txt)" using 8:6 title "insert - H(1) - rb" ls 1, "<(grep ^u64/1:eb run-20250613-01.txt)" using 8:6 title "insert - H(1) - eb" ls 2, "<(grep ^u64/1:ceb run-20250613-01.txt)" using 8:6 title "insert H(1) - ceb" ls 3, "<(grep ^u64/256:rb run-20250613-01.txt)" using 8:6 title "insert - H(256) - rb" ls 4, "<(grep ^u64/256:eb run-20250613-01.txt)" using 8:6 title "insert - H(256) - eb" ls 5, "<(grep ^u64/256:ceb run-20250613-01.txt)" using 8:6 title "insert - H(256) - ceb" ls 6, "<(grep ^u64/65536:rb run-20250613-01.txt)" using 8:6 title "insert - H(64k) - rb" ls 7, "<(grep ^u64/65536:eb run-20250613-01.txt)" using 8:6 title "insert - H(64k) - eb" ls 8, "<(grep ^u64/65536:ceb run-20250613-01.txt)" using 8:6 title "insert - H(64k) - ceb" ls 9
+#
+#
+## get the max
+#stats "<(grep ^u64/ run-20250613-01.txt)" using ($14) name "delete" nooutput
+#set ytics ceil(delete_max/100)*5  
+#
+#plot "<(grep ^u64/1:rb run-20250613-01.txt)" using 8:14 title "delete - H(1) - rb" ls 1, "<(grep ^u64/1:eb run-20250613-01.txt)" using 8:14 title "delete - H(1) - eb" ls 2, "<(grep ^u64/1:ceb run-20250613-01.txt)" using 8:14 title "delete H(1) - ceb" ls 3, "<(grep ^u64/256:rb run-20250613-01.txt)" using 8:14 title "delete - H(256) - rb" ls 4, "<(grep ^u64/256:eb run-20250613-01.txt)" using 8:14 title "delete - H(256) - eb" ls 5, "<(grep ^u64/256:ceb run-20250613-01.txt)" using 8:14 title "delete - H(256) - ceb" ls 6, "<(grep ^u64/65536:rb run-20250613-01.txt)" using 8:14 title "delete - H(64k) - rb" ls 7, "<(grep ^u64/65536:eb run-20250613-01.txt)" using 8:14 title "delete - H(64k) - eb" ls 8, "<(grep ^u64/65536:ceb run-20250613-01.txt)" using 8:14 title "delete - H(64k) - ceb" ls 9
+#
+## get the max
+#stats "<(grep ^u64/ run-20250613-01.txt)" using ($6+$14) name "replace" nooutput
+#set ytics ceil(replace_max/100)*5  
+#
+#plot "<(grep ^u64/1:rb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(1) - rb" ls 1, "<(grep ^u64/1:eb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(1) - eb" ls 2, "<(grep ^u64/1:ceb run-20250613-01.txt)" using 8:($6+$14) title "replace H(1) - ceb" ls 3, "<(grep ^u64/256:rb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(256) - rb" ls 4, "<(grep ^u64/256:eb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(256) - eb" ls 5, "<(grep ^u64/256:ceb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(256) - ceb" ls 6, "<(grep ^u64/65536:rb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(64k) - rb" ls 7, "<(grep ^u64/65536:eb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(64k) - eb" ls 8, "<(grep ^u64/65536:ceb run-20250613-01.txt)" using 8:($6+$14) title "replace - H(64k) - ceb" ls 9
+#
+#
+#
+################################
+################################
+#
+#filename="run-20250613-01.txt"
+#test="u64"
+
+# get the max values for each graph
+stats sprintf("<(grep ^%s/ %s)",test,filename) using ($10)    name "lookup"  nooutput
+stats sprintf("<(grep ^%s/ %s)",test,filename) using ($6)     name "insert"  nooutput
+stats sprintf("<(grep ^%s/ %s)",test,filename) using ($14)    name "delete"  nooutput
+stats sprintf("<(grep ^%s/ %s)",test,filename) using ($6+$14) name "replace" nooutput
+
+# lookup
+set output "graph-lookup-" . test . ".png"
+set ytics ceil(lookup_max/100)*5
+
+if (test eq "tmr") {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:10 title "lookup - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:10 title "lookup - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:10 title "lookup H(1) - ceb" ls 3
+} else {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:10 title "lookup - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:10 title "lookup - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:10 title "lookup - H(1) - ceb" ls 3, sprintf("<(grep ^%s/256:%s %s)", test, "rb", filename) using 8:10 title "lookup - H(256) - rb" ls 4, sprintf("<(grep ^%s/256:%s %s)", test, "eb", filename) using 8:10 title "lookup - H(256) - eb" ls 5, sprintf("<(grep ^%s/256:%s %s)", test, "ceb", filename) using 8:10 title "lookup - H(256) - ceb" ls 6, sprintf("<(grep ^%s/65536:%s %s)", test, "rb", filename) using 8:10 title "lookup - H(64k) - rb" ls 7, sprintf("<(grep ^%s/65536:%s %s)", test, "eb", filename) using 8:10 title "lookup - H(64k) - eb" ls 8, sprintf("<(grep ^%s/65536:%s %s)", test, "ceb", filename) using 8:10 title "lookup - H(64k) - ceb" ls 9
+}
+
+# insert
+set output "graph-insert-" . test . ".png"
+set ytics ceil(insert_max/100)*5
+
+if (test eq "tmr") {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:6 title "insert - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:6 title "insert - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:6 title "insert H(1) - ceb" ls 3
+} else {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:6 title "insert - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:6 title "insert - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:6 title "insert - H(1) - ceb" ls 3, sprintf("<(grep ^%s/256:%s %s)", test, "rb", filename) using 8:6 title "insert - H(256) - rb" ls 4, sprintf("<(grep ^%s/256:%s %s)", test, "eb", filename) using 8:6 title "insert - H(256) - eb" ls 5, sprintf("<(grep ^%s/256:%s %s)", test, "ceb", filename) using 8:6 title "insert - H(256) - ceb" ls 6, sprintf("<(grep ^%s/65536:%s %s)", test, "rb", filename) using 8:6 title "insert - H(64k) - rb" ls 7, sprintf("<(grep ^%s/65536:%s %s)", test, "eb", filename) using 8:6 title "insert - H(64k) - eb" ls 8, sprintf("<(grep ^%s/65536:%s %s)", test, "ceb", filename) using 8:6 title "insert - H(64k) - ceb" ls 9
+}
+
+# delete
+set output "graph-delete-" . test . ".png"
+set ytics ceil(delete_max/100)*5
+
+if (test eq "tmr") {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:14 title "delete - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:14 title "delete - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:14 title "delete H(1) - ceb" ls 3
+} else {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:14 title "delete - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:14 title "delete - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:14 title "delete - H(1) - ceb" ls 3, sprintf("<(grep ^%s/256:%s %s)", test, "rb", filename) using 8:14 title "delete - H(256) - rb" ls 4, sprintf("<(grep ^%s/256:%s %s)", test, "eb", filename) using 8:14 title "delete - H(256) - eb" ls 5, sprintf("<(grep ^%s/256:%s %s)", test, "ceb", filename) using 8:14 title "delete - H(256) - ceb" ls 6, sprintf("<(grep ^%s/65536:%s %s)", test, "rb", filename) using 8:14 title "delete - H(64k) - rb" ls 7, sprintf("<(grep ^%s/65536:%s %s)", test, "eb", filename) using 8:14 title "delete - H(64k) - eb" ls 8, sprintf("<(grep ^%s/65536:%s %s)", test, "ceb", filename) using 8:14 title "delete - H(64k) - ceb" ls 9
+}
+
+# replace
+set output "graph-replace-" . test . ".png"
+set ytics ceil(replace_max/100)*5
+
+if (test eq "tmr") {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:($6+$14) title "replace - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:($6+$14) title "replace - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:($6+$14) title "replace - H(1) - ceb" ls 3
+} else {
+  plot sprintf("<(grep ^%s/1:%s %s)", test, "rb", filename) using 8:($6+$14) title "replace - H(1) - rb" ls 1, sprintf("<(grep ^%s/1:%s %s)", test, "eb", filename) using 8:($6+$14) title "replace - H(1) - eb" ls 2, sprintf("<(grep ^%s/1:%s %s)", test, "ceb", filename) using 8:($6+$14) title "replace - H(1) - ceb" ls 3, sprintf("<(grep ^%s/256:%s %s)", test, "rb", filename) using 8:($6+$14) title "replace - H(256) - rb" ls 4, sprintf("<(grep ^%s/256:%s %s)", test, "eb", filename) using 8:($6+$14) title "replace - H(256) - eb" ls 5, sprintf("<(grep ^%s/256:%s %s)", test, "ceb", filename) using 8:($6+$14) title "replace - H(256) - ceb" ls 6, sprintf("<(grep ^%s/65536:%s %s)", test, "rb", filename) using 8:($6+$14) title "replace - H(64k) - rb" ls 7, sprintf("<(grep ^%s/65536:%s %s)", test, "eb", filename) using 8:($6+$14) title "replace - H(64k) - eb" ls 8, sprintf("<(grep ^%s/65536:%s %s)", test, "ceb", filename) using 8:($6+$14) title "replace - H(64k) - ceb" ls 9
+}
+
+
+##########################################
+##########################################
+
+#### only possible from gnuplot 6.0 and onwards, and still experimental
+#function $plot_test(filename,test) << EOF
+# ...
+#EOF
+#
+#### now do the real plot
+#$plot_test("run-20250613-01.txt","u64")
