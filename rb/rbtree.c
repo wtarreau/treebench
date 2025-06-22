@@ -661,7 +661,7 @@ void __helper_rb_tree_delete_rebalance(struct rb_tree *tree,
     struct rb_tree_node *xp = parent;
     int is_left = node_is_left;
 
-    while (xp && x != tree->root && (x == NULL || RB_TREE_NODE_GET_COLOR(x) == COLOR_BLACK)) {
+    while (x != tree->root && (x == NULL || RB_TREE_NODE_GET_COLOR(x) == COLOR_BLACK)) {
         struct rb_tree_node *w = is_left ? xp->right : xp->left;    /* Sibling */
 
         if (w != NULL && RB_TREE_NODE_GET_COLOR(w) == COLOR_RED) {
