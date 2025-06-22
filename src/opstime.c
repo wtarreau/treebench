@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 		switch (arg_gmode) {
 		case 4:
 			v = ctr;
-			ctr += rnd32() & 255;
+			ctr += 1 + (rnd32() & 255);
 			break;
 		case 3:
 			v = ctr++;
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
 		switch (arg_gmode) {
 		case 4:
 			v = ctr;
-			ctr += rnd32() & 255;
+			ctr += 1 + (rnd32() & 255);
 			ulltoa(v, line, sizeof(line));
 			break;
 		case 3:
