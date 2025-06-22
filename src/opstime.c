@@ -577,13 +577,13 @@ int main(int argc, char **argv)
 				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
 			else if (hmethod == 2)
 				bucket = rapidhashNano(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
-			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.i))
+			if (NODE_FND(&ctx.root[bucket], ctx.table[idx].key.i) != &ctx.table[idx].item->node)
 #elif defined(KEY_IS_STR)
 			if (hmethod == 1)
 				bucket = XXH3_64bits(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
 			else if (hmethod == 2)
 				bucket = rapidhashNano(ctx.table[idx].key.p, ctx.table[idx].len) % buckets;
-			if (!NODE_FND(&ctx.root[bucket], ctx.table[idx].key.p))
+			if (NODE_FND(&ctx.root[bucket], ctx.table[idx].key.p) != &ctx.table[idx].item->node)
 #else
 #error "type not implemented yet"
 #endif
