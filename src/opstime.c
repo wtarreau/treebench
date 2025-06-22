@@ -523,7 +523,11 @@ int main(int argc, char **argv)
 #endif
 			}
 
-			NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node);
+			if (NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node) != &ctx.table[idx].item->node) {
+				if (debug)
+					printf("idx %d: dup key %#llx\n", idx, (long long)ctx.table[idx].item->key);
+				ctx.table[idx].item = NULL;
+			}
 		}
 
 		tv_now(&beg);
@@ -548,7 +552,11 @@ int main(int argc, char **argv)
 #error "type not implemented yet"
 #endif
 			}
-			NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node);
+			if (NODE_INS(&ctx.root[bucket], &ctx.table[idx].item->node) != &ctx.table[idx].item->node) {
+				if (debug)
+					printf("idx %d: dup key %#llx\n", idx, (long long)ctx.table[idx].item->key);
+				ctx.table[idx].item = NULL;
+			}
 		}
 		tv_now(&end);
 		ctx.ins_times[run] = tv_us_elapsed(&beg, &end);
@@ -562,6 +570,8 @@ int main(int argc, char **argv)
 		for (idx = 0; idx < nbentries; idx++) {
 			unsigned int bucket = ctx.table[idx].bucket;
 
+			if (!ctx.table[idx].item)
+				continue;
 #if defined(KEY_IS_INT)
 			if (hmethod == 1)
 				bucket = XXH3_64bits(&ctx.table[idx].key.i, sizeof(ctx.table[idx].key.i)) % buckets;
@@ -588,12 +598,18 @@ int main(int argc, char **argv)
 			printf("Run #%u... deleting\n", run);
 		idx = 0;
 		tv_now(&beg);
-		for (; idx < nbentries / 2; idx++)
+		for (; idx < nbentries / 2; idx++) {
+			if (!ctx.table[idx].item)
+				continue;
 			NODE_DEL(&ctx.root[ctx.table[idx].bucket], &ctx.table[idx].item->node);
+		}
 		tv_now(&end);
 
-		for (; idx < nbentries; idx++)
+		for (; idx < nbentries; idx++) {
+			if (!ctx.table[idx].item)
+				continue;
 			NODE_DEL(&ctx.root[ctx.table[idx].bucket], &ctx.table[idx].item->node);
+		}
 
 		ctx.del_times[run] = tv_us_elapsed(&beg, &end);
 		ctx.del += ctx.del_times[run];
